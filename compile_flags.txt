@@ -1,0 +1,5 @@
+$(pkg-config --cflags gtk4)
+-o
+~/Documents/PhiQLater/main
+~/Documents/PhiQLater/main.c
+$(pkg-config --libs gtk4)
