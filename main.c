@@ -4,6 +4,8 @@
 static void on_activate (GtkApplication *app) {
     // Create a new window
     GtkWidget *window = gtk_application_window_new(app);
+    
+    
 
     // title
     gtk_window_set_title(GTK_WINDOW(window), "PhiQLater");
@@ -13,8 +15,8 @@ static void on_activate (GtkApplication *app) {
 
     // Create a new button
     GtkWidget *button = gtk_button_new_with_label("Close Window");
-    gtk_widget_set_halign(button, GTK_ALIGN_CENTER);
-    gtk_widget_set_valign(button, GTK_ALIGN_CENTER);
+    gtk_widget_set_halign(button, GTK_ALIGN_END + 10);
+    gtk_widget_set_valign(button, GTK_ALIGN_END + 10);
     
     // When the button is clicked, close the window passed as an argument
     g_signal_connect_swapped (button, "clicked", G_CALLBACK(gtk_window_close), window);
