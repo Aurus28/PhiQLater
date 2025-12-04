@@ -1,32 +1,34 @@
 // Include gtk
+#include "glib-object.h"
+#include "glib.h"
 #include <gtk/gtk.h>
 
 static void on_activate (GtkApplication *app) {
-    // Create a new window
-    GtkWidget *window = gtk_application_window_new(app);
-    
-    
+    // define things
+    GtkBuilder *builder;
+    GObject *window;
 
-    // title
-    gtk_window_set_title(GTK_WINDOW(window), "PhiQLater");
+    // assign things
+    builder = gtk_builder_new_from_file("/home/aurus28/Documents/PhiQLater/phiqlater.ui");
+    window = gtk_builder_get_object(builder, "main_window");
 
-    //size
-    gtk_window_set_default_size(GTK_WINDOW(window), 700, 400);
+    // error handling
+    if(!window) {
+        g_error("Failed to find \"main_window\" in \"phiqlater.ui\"!");
+    }
 
-    // Create a new button
-    GtkWidget *button = gtk_button_new_with_label("Close Window");
-    gtk_widget_set_halign(button, GTK_ALIGN_END + 10);
-    gtk_widget_set_valign(button, GTK_ALIGN_END + 10);
-    
-    // When the button is clicked, close the window passed as an argument
-    g_signal_connect_swapped (button, "clicked", G_CALLBACK(gtk_window_close), window);
-    gtk_window_set_child (GTK_WINDOW(window), button);
-    gtk_window_present (GTK_WINDOW(window));
+    //assign window to application
+    gtk_window_set_application(GTK_WINDOW(window), GTK_APPLICATION(app));
+
+    // show window
+    gtk_window_present(GTK_WINDOW(window));
+
+    g_object_unref(builder);
 }
 
 int main (int argc, char *argv[]) {
     // Create a new application
     GtkApplication *app = gtk_application_new ("de.aurus28.PhiQLater", G_APPLICATION_DEFAULT_FLAGS);
     g_signal_connect (app, "activate", G_CALLBACK (on_activate), NULL);
-    return g_application_run (G_APPLICATION (app), argc, argv);
+    return g_application_run (G_APPLICATION(app), argc, argv);
 }
