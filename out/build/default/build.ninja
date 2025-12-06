@@ -70,7 +70,7 @@ build PhiQLater: C_EXECUTABLE_LINKER__PhiQLater_Debug CMakeFiles/PhiQLater.dir/m
   CONFIG = Debug
   DEP_FILE = CMakeFiles/PhiQLater.dir/link.d
   FLAGS = -g
-  LINK_FLAGS = -Wl,--dependency-file=CMakeFiles/PhiQLater.dir/link.d
+  LINK_FLAGS = -Wl,--export-dynamic -Wl,--dependency-file=CMakeFiles/PhiQLater.dir/link.d
   LINK_LIBRARIES = -lgtk-4  -lpangocairo-1.0  -lpango-1.0  -lharfbuzz  -lgdk_pixbuf-2.0  -lcairo-gobject  -lcairo  -lvulkan  -lgraphene-1.0  -lgio-2.0  -lgobject-2.0  -lglib-2.0
   OBJECT_DIR = CMakeFiles/PhiQLater.dir
   POST_BUILD = :
