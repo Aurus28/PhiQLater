@@ -3,6 +3,8 @@
 #include "glib.h"
 #include "gmodule.h"
 #include <gtk/gtk.h>
+#include <gmp.h>
+
 
 GtkWidget *create_row() {
     // get widget from file
