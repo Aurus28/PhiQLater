@@ -17,15 +17,20 @@ gchar **parse_input(const char *input) {
     // match input to regex
     g_regex_match(regex, input, 0, &match_info);
 
-    // get output from info
-    gchar **output = g_match_info_fetch_all(match_info);
+    GPtrArray *array = g_ptr_array_new_with_free_func(g_free);
+
+    while (g_match_info_matches(match_info)) {
+        gchar *token = g_match_info_fetch(match_info, 0);
+        g_ptr_array_add(array, token);
+        g_match_info_next(match_info, nullptr);
+    }
+
+    g_ptr_array_add(array, NULL);
 
     // free thingos
     g_match_info_free(match_info);
-    g_regex_unref(regex);
 
-    g_print("parsing done\n");
-    return output;
+    return (gchar**) g_ptr_array_free(array, FALSE);
 }
 
 
@@ -47,19 +52,16 @@ GtkWidget *create_row() {
 // sidequest is still broken
 //sidequest
 char *tokens_into_one(gchar **input) {
-    char *output = "";
-    for(int i; i < 1000; i++) {
-        if(input[i] == NULL) {
-            break;
-        }
-        g_print("test\n");
-        g_print(input[i], "\n");
-        strcat(output, input[i]);
+    GString *builder = g_string_new(nullptr);
+
+    for (int i = 0; input[i] != NULL; i++) {
+        g_string_append(builder, input[i]);
+        g_string_append(builder, " | ");
     }
 
-    g_print("converting tokens worked\n");
-    return output;
+    return g_string_free(builder, FALSE); // returns char*, do NOT free builder
 }
+
 
 G_MODULE_EXPORT void perform_calculation(GtkWidget *widget, gpointer data) {
     //get the entry field
@@ -80,8 +82,11 @@ G_MODULE_EXPORT void perform_calculation(GtkWidget *widget, gpointer data) {
     GtkWidget *parent = gtk_widget_get_parent(widget);
     GtkWidget *output = gtk_widget_get_next_sibling(parent);
 
+    gchar **tokens = parse_input(input);
+    char *tokenised_str = tokens_into_one(tokens);
+
     // fill output with text
-    gtk_label_set_label(GTK_LABEL(output), tokens_into_one(parse_input(input)));
+    gtk_label_set_label(GTK_LABEL(output), tokenised_str);
 
     // check if this calc field was used before
     gboolean used = gtk_widget_get_visible(output);
@@ -93,16 +98,17 @@ G_MODULE_EXPORT void perform_calculation(GtkWidget *widget, gpointer data) {
     if(!used) {
         gtk_box_append(GTK_BOX(gtk_widget_get_parent(gtk_widget_get_parent(parent))), create_row());
     }
+
+    // free memory
+    g_strfreev(tokens);
+    g_free(tokenised_str);
 }
 
 static void on_activate (GtkApplication *app) {
-    // define things
-    GtkBuilder *builder;
-    GObject *window;
 
     // assign things
-    builder = gtk_builder_new_from_file("/home/aurus28/Documents/PhiQLater/phiqlater.ui");
-    window = gtk_builder_get_object(builder, "main_window");
+    GtkBuilder *builder = gtk_builder_new_from_file("/home/aurus28/Documents/PhiQLater/phiqlater.ui");
+    GObject *window = gtk_builder_get_object(builder, "main_window");
 
     // error handling
     if(!window) {
@@ -127,12 +133,19 @@ int main (int argc, char *argv[]) {
     "|\\(|\\)",              // parentheses
     G_REGEX_OPTIMIZE,
     0,
-    NULL
+    nullptr
     );
 
 
     // Create a new application
     GtkApplication *app = gtk_application_new ("de.aurus28.PhiQLater", G_APPLICATION_DEFAULT_FLAGS);
     g_signal_connect (app, "activate", G_CALLBACK (on_activate), NULL);
-    return g_application_run (G_APPLICATION(app), argc, argv);
+
+    int ret = g_application_run (G_APPLICATION(app), argc, argv);
+    
+    // free memory
+    g_regex_unref(regex);
+    g_object_unref(app);
+    
+    return ret;
 }
