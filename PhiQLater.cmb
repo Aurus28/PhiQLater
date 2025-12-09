@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<!DOCTYPE cambalache-project SYSTEM "cambalache-project.dtd">
+<!-- Created with Cambalache 0.96.3 -->
+<cambalache-project version="0.96.0" target_tk="gtk-4.0">
+  <ui filename="phiqlater.ui" sha256="c908463d168bf5baefa0ba2b3b2472287bc99e65a712aa18a7455923ae2165de"/>
+  <ui filename="calc_row.ui" sha256="e7c7ae6226a623fb682938f7a0cae5ef4adb1184913101b34a49112e83da5417"/>
+</cambalache-project>
