@@ -1,8 +1,0 @@
-[
-{
-  "directory": "/home/aurus28/Documents/PhiQLater/out/build/Custom configure preset",
-  "command": "/usr/bin/cc -g -o CMakeFiles/PhiQLater.dir/main.c.o -c /home/aurus28/Documents/PhiQLater/main.c",
-  "file": "/home/aurus28/Documents/PhiQLater/main.c",
-  "output": "/home/aurus28/Documents/PhiQLater/out/build/Custom configure preset/CMakeFiles/PhiQLater.dir/main.c.o"
-}
-]

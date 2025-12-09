@@ -1,3 +1,0 @@
-/home/aurus28/Documents/PhiQLater/out/build/Custom configure preset/CMakeFiles/PhiQLater.dir
-/home/aurus28/Documents/PhiQLater/out/build/Custom configure preset/CMakeFiles/edit_cache.dir
-/home/aurus28/Documents/PhiQLater/out/build/Custom configure preset/CMakeFiles/rebuild_cache.dir
