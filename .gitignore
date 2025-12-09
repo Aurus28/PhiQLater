@@ -31,3 +31,4 @@ default/
 # --- Misc files ---
 *.log
 *.tmp
+.cache/
