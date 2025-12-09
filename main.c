@@ -34,6 +34,11 @@ gchar **parse_input(const char *input) {
 }
 
 
+
+gchar *interpret_input(const char **tokens) {
+    return ":)";
+}
+
 GtkWidget *create_row() {
     // get widget from file
     GtkBuilder *builder = gtk_builder_new_from_file("/home/aurus28/Documents/PhiQLater/calc_row.ui");
@@ -94,7 +99,7 @@ G_MODULE_EXPORT void perform_calculation(GtkWidget *widget, gpointer data) {
     // make output label visible
     gtk_widget_set_visible(output, true);
 
-    // add new calc line under if it wasnt used before (parent of parent of parent of the button that was clicked is the box where to add a new row)
+    // add new calc line under if it wasn't used before (parent of parent of parent of the button that was clicked is the box where to add a new row)
     if(!used) {
         gtk_box_append(GTK_BOX(gtk_widget_get_parent(gtk_widget_get_parent(parent))), create_row());
     }
@@ -127,9 +132,9 @@ static void on_activate (GtkApplication *app) {
 int main (int argc, char *argv[]) {
     // regex (for later use)
     regex = g_regex_new(
-    "[0-9]+(?:\\.[0-9]+)?"   // numbers
+    "[0-9]+(?:\\.[0-9]+)?+(?:e+(?:-)?[0-9]+)?"   // numbers (with e)
     "|[A-Za-z]+"             // identifiers (sqrt, sin, ...)
-    "|\\*|/|\\+|-"       // operators
+    "|\\*|/|\\+|-"            // operators
     "|\\(|\\)",              // parentheses
     G_REGEX_OPTIMIZE,
     0,

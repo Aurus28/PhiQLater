@@ -1,3 +1,33 @@
-.cache/*
-out/build/.*
-out/build/default/.*
+# --- Build directories ---
+/out/
+/build/
+/cmake-build-*/
+
+# --- CMake generated files ---
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+
+# Ninja build files
+.ninja_deps
+.ninja_log
+rules.ninja
+build.ninja
+
+# Debug/Release build dirs
+Debug/
+Release/
+default/
+
+# --- Executables & libraries ---
+*.a
+*.o
+*.so
+*.dll
+*.dylib
+*.exe
+
+# --- Misc files ---
+*.log
+*.tmp

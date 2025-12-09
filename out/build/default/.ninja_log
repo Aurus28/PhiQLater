@@ -1,5 +1,13 @@
 # ninja log v6
-7	534	1765278746982250857	CMakeFiles/PhiQLater.dir/main.c.o	5ae5e62180b1b749
-535	754	1765278747510272249	PhiQLater	85a5cb25bcf05aac
-4	649	1765279549774775359	CMakeFiles/PhiQLater.dir/main.c.o	f72adb35f9feedd5
 650	922	1765279550420719916	PhiQLater	85a5cb25bcf05aac
+4	649	1765279549774775359	CMakeFiles/PhiQLater.dir/main.c.o	f72adb35f9feedd5
+1	20	1765296529667060625	build.ninja	695bb08d2b44565d
+1	20	1765296529667060625	/home/aurus28/Documents/PhiQLater/out/build/default/cmake_install.cmake	695bb08d2b44565d
+0	259	1765296529671580619	CMakeFiles/PhiQLater.dir/main.c.o	f72adb35f9feedd5
+259	430	1765296529930592463	PhiQLater	85a5cb25bcf05aac
+2	242	1765296790976040056	CMakeFiles/PhiQLater.dir/main.c.o	f72adb35f9feedd5
+242	347	1765296791216048508	PhiQLater	85a5cb25bcf05aac
+3	299	1765296991307553035	CMakeFiles/PhiQLater.dir/main.c.o	f72adb35f9feedd5
+299	392	1765296991603561951	PhiQLater	85a5cb25bcf05aac
+3	254	1765297067313785689	CMakeFiles/PhiQLater.dir/main.c.o	f72adb35f9feedd5
+254	361	1765297067564792881	PhiQLater	85a5cb25bcf05aac
