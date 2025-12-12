@@ -33,35 +33,62 @@ gchar **parse_input(const char *input) {
     return (gchar**) g_ptr_array_free(array, FALSE);
 }
 
+gchar *check_type(const char *token) {
+    switch (token[0]) {
+        case '1' || '2' || '3' || '4' || '5' || '6' || '7' || '8' || '9' || '0' :
+            return "num";
+        case '+':
+            return "+";
+        case '-':
+            return "-";
+        case '*':
+            return "*";
+        case '/':
+            return "/";
+        default:
+            return "unidentified";
+    }
+}
 
 
-gchar *interpret_input(const char **tokens) {
+// currently broken
+void interpret_input(mpq_t result, char **tokens) {
 
-    GPtrArray *array = g_ptr_array_new_with_free_func(g_free);
+    mpq_set_str(result, "0", 10);
 
     for (int i = 0; tokens[i] != NULL; i++) {
-        switch (tokens[i][0]) {
-            case '1' || '2' || '3' || '4' || '5' || '6' || '7' || '8' || '9' || '0' :
-                mpq_t x;
-                mpq_init(x);
-                mpq_set_str(x, tokens[i], 10);
-                gmp_printf("%Qd\n", x);
-                g_ptr_array_add(array, x);
-                break;
-            case '+':
-                // if next token is a num do calculation or something, idk
-                break;
-            case '-':
-                break;
-            case '*':
-                break;
-            case '/':
-                break;
-            default:
-
+        // if num: check prev token. then do ret (+,-,*,/) num. if not num continue if there is no prev token just add num
+        if (strcmp(check_type(tokens[i]), "num") == 0) {
+            if (i > 0) {
+                if (strcmp(check_type(tokens[i-1]), "-") == 0) {
+                    mpq_t x;
+                    mpq_init(x);
+                    mpq_set_str(x, tokens[i], 10);
+                    mpq_sub(result, result, x);
+                    continue;
+                }
+                if (strcmp(check_type(tokens[i-1]), "*") == 0) {
+                    mpq_t x;
+                    mpq_init(x);
+                    mpq_set_str(x, tokens[i], 10);
+                    mpq_mul(result, result, x);
+                    continue;
+                }
+                if (strcmp(check_type(tokens[i-1]), "/") == 0) {
+                    mpq_t x;
+                    mpq_init(x);
+                    mpq_set_str(x, tokens[i], 10);
+                    mpq_div(result, result, x);
+                    continue;
+                }
+            }
+            mpq_t x;
+            mpq_init(x);
+            mpq_set_str(x, tokens[i], 10);
+            mpq_add(result, result, x);
         }
     }
-    return ":)";
+    mpq_canonicalize(result);
 }
 
 GtkWidget *create_row() {
@@ -115,7 +142,14 @@ G_MODULE_EXPORT void perform_calculation(GtkWidget *widget, gpointer data) {
     char *tokenised_str = tokens_into_one(tokens);
 
     // fill output with text
-    gtk_label_set_label(GTK_LABEL(output), tokenised_str);
+
+    mpq_t result;
+    mpq_init(result);
+    interpret_input(result, tokens);
+
+
+
+    gtk_label_set_label(GTK_LABEL(output), mpq_get_str(nullptr, 10, result));
 
     // check if this calc field was used before
     gboolean used = gtk_widget_get_visible(output);
