@@ -36,6 +36,31 @@ gchar **parse_input(const char *input) {
 
 
 gchar *interpret_input(const char **tokens) {
+
+    GPtrArray *array = g_ptr_array_new_with_free_func(g_free);
+
+    for (int i = 0; tokens[i] != NULL; i++) {
+        switch (tokens[i][0]) {
+            case '1' || '2' || '3' || '4' || '5' || '6' || '7' || '8' || '9' || '0' :
+                mpq_t x;
+                mpq_init(x);
+                mpq_set_str(x, tokens[i], 10);
+                gmp_printf("%Qd\n", x);
+                g_ptr_array_add(array, x);
+                break;
+            case '+':
+                // if next token is a num do calculation or something, idk
+                break;
+            case '-':
+                break;
+            case '*':
+                break;
+            case '/':
+                break;
+            default:
+
+        }
+    }
     return ":)";
 }
 
@@ -54,7 +79,6 @@ GtkWidget *create_row() {
     return row;
 }
 
-// sidequest is still broken
 //sidequest
 char *tokens_into_one(gchar **input) {
     GString *builder = g_string_new(nullptr);
