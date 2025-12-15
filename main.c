@@ -34,8 +34,27 @@ gchar **parse_input(const char *input) {
 }
 
 gchar *check_type(const char *token) {
+
     switch (token[0]) {
-        case '1' || '2' || '3' || '4' || '5' || '6' || '7' || '8' || '9' || '0' :
+        case '1':
+            return "num";
+        case '2':
+            return "num";
+        case '3':
+            return "num";
+        case '4':
+            return "num";
+        case '5':
+            return "num";
+        case '6':
+            return "num";
+        case '7':
+            return "num";
+        case '8':
+            return "num";
+        case '9':
+            return "num";
+        case '0':
             return "num";
         case '+':
             return "+";
@@ -139,17 +158,22 @@ G_MODULE_EXPORT void perform_calculation(GtkWidget *widget, gpointer data) {
     GtkWidget *output = gtk_widget_get_next_sibling(parent);
 
     gchar **tokens = parse_input(input);
+
+    // debugging
     char *tokenised_str = tokens_into_one(tokens);
+    g_print("%s\n", tokenised_str);
 
     // fill output with text
-
+    // have exact number
     mpq_t result;
     mpq_init(result);
     interpret_input(result, tokens);
 
+    // now make it String
+    char *str = mpq_get_str(nullptr, 10, result);
 
-
-    gtk_label_set_label(GTK_LABEL(output), mpq_get_str(nullptr, 10, result));
+    // set output
+    gtk_label_set_label(GTK_LABEL(output), str);
 
     // check if this calc field was used before
     gboolean used = gtk_widget_get_visible(output);
@@ -165,6 +189,7 @@ G_MODULE_EXPORT void perform_calculation(GtkWidget *widget, gpointer data) {
     // free memory
     g_strfreev(tokens);
     g_free(tokenised_str);
+    free(str);
 }
 
 static void on_activate (GtkApplication *app) {
