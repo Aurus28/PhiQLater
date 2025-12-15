@@ -71,11 +71,14 @@ gchar *check_type(const char *token) {
 
 
 // currently broken
-void interpret_input(mpq_t result, char **tokens) {
+gboolean interpret_input(mpq_t result, char **tokens) {
 
     mpq_set_str(result, "0", 10);
 
     for (int i = 0; tokens[i] != NULL; i++) {
+        if (strcmp(check_type(tokens[i]), "unidentified") == 0) {
+            return false;
+        }
         // if num: check prev token. then do ret (+,-,*,/) num. if not num continue if there is no prev token just add num
         if (strcmp(check_type(tokens[i]), "num") == 0) {
             if (i > 0) {
@@ -84,6 +87,7 @@ void interpret_input(mpq_t result, char **tokens) {
                     mpq_init(x);
                     mpq_set_str(x, tokens[i], 10);
                     mpq_sub(result, result, x);
+                    mpq_canonicalize(result);
                     continue;
                 }
                 if (strcmp(check_type(tokens[i-1]), "*") == 0) {
@@ -91,6 +95,7 @@ void interpret_input(mpq_t result, char **tokens) {
                     mpq_init(x);
                     mpq_set_str(x, tokens[i], 10);
                     mpq_mul(result, result, x);
+                    mpq_canonicalize(result);
                     continue;
                 }
                 if (strcmp(check_type(tokens[i-1]), "/") == 0) {
@@ -98,16 +103,22 @@ void interpret_input(mpq_t result, char **tokens) {
                     mpq_init(x);
                     mpq_set_str(x, tokens[i], 10);
                     mpq_div(result, result, x);
+                    mpq_canonicalize(result);
                     continue;
+                }
+                if (strcmp(check_type(tokens[i-1]), "num") == 0) {
+                    return false;
                 }
             }
             mpq_t x;
             mpq_init(x);
             mpq_set_str(x, tokens[i], 10);
             mpq_add(result, result, x);
+            mpq_canonicalize(result);
         }
     }
     mpq_canonicalize(result);
+    return true;
 }
 
 GtkWidget *create_row() {
@@ -167,14 +178,21 @@ G_MODULE_EXPORT void perform_calculation(GtkWidget *widget, gpointer data) {
     // have exact number
     mpq_t result;
     mpq_init(result);
-    interpret_input(result, tokens);
+    gboolean worked =  interpret_input(result, tokens);
 
-    // now make it String
-    char *str = mpq_get_str(nullptr, 10, result);
+    if (worked) {
+        // now make it String
+        char *str = mpq_get_str(nullptr, 10, result);
 
-    // set output
-    gtk_label_set_label(GTK_LABEL(output), str);
+        // set output
+        gtk_label_set_label(GTK_LABEL(output), str);
 
+        // freeeee
+        free(str);
+    } else {
+        const char *error = strcat(tokenised_str, "couldn't be interpreted");
+        gtk_label_set_label(GTK_LABEL(output), error);
+    }
     // check if this calc field was used before
     gboolean used = gtk_widget_get_visible(output);
 
@@ -189,7 +207,6 @@ G_MODULE_EXPORT void perform_calculation(GtkWidget *widget, gpointer data) {
     // free memory
     g_strfreev(tokens);
     g_free(tokenised_str);
-    free(str);
 }
 
 static void on_activate (GtkApplication *app) {
