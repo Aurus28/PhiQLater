@@ -69,6 +69,28 @@ gchar *check_type(const char *token) {
     }
 }
 
+char check_decimal(char *token) {
+    char is_decimal = 0; // 0 => normal | 'd' => decimal | 'e' => e notation | 98 => decimal & e notation | 99 => normal & decimal e notation | 100 => decimal & decimal e notation, e.g. 4.4e5.5
+    for (int j = 0; token[j] != '\0'; j++) {
+        if (token[j] == '.') {
+            if (is_decimal == 0) {
+                is_decimal = 'd';
+            } else if (is_decimal == 'e') {
+                is_decimal = 99;
+            } else {
+                is_decimal = 100;
+            }
+        } else if (token[j] == 'e') {
+            if (is_decimal == 0) {
+                is_decimal = 'e';
+            } else if (is_decimal == 'd') {
+                is_decimal = 98;
+            }
+        }
+    }
+    return is_decimal;
+}
+
 
 // currently broken
 gboolean interpret_input(mpq_t result, char **tokens) {
@@ -79,9 +101,18 @@ gboolean interpret_input(mpq_t result, char **tokens) {
         if (strcmp(check_type(tokens[i]), "unidentified") == 0) {
             return false;
         }
-        // if num: check prev token. then do ret (+,-,*,/) num. if not num continue if there is no prev token just add num
+        // if num: check prev token. then do ret (+,-,*,/) num. if not num continue if there is no prev token just add num or if prev token also num then return an error
         if (strcmp(check_type(tokens[i]), "num") == 0) {
+            // check for decimal
+            // 0 => normal | 'd' => decimal | 'e' => e notation | 98 => decimal & e notation | 99 => normal & decimal e notation | 100 => decimal & decimal e notation, e.g. 4.4e5.5
+            char decimal = check_decimal(tokens[i]);
+            char *num_as_string;
+            // TODO now check whether e in num (check if decimal == e || 98 || 99 || 100)
+            // then if not e run num through decimal to fractions function and use that return value
+            // or if e run both nums (before e and after e) through said function and multiply both and use that value
+
             if (i > 0) {
+
                 if (strcmp(check_type(tokens[i-1]), "-") == 0) {
                     mpq_t x;
                     mpq_init(x);
