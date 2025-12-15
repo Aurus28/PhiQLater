@@ -69,7 +69,7 @@ gchar *check_type(const char *token) {
     }
 }
 
-char check_decimal(char *token) {
+char check_decimal(const char *token) {
     char is_decimal = 0; // 0 => normal | 'd' => decimal | 'e' => e notation | 98 => decimal & e notation | 99 => normal & decimal e notation | 100 => decimal & decimal e notation, e.g. 4.4e5.5
     for (int j = 0; token[j] != '\0'; j++) {
         if (token[j] == '.') {
@@ -91,6 +91,43 @@ char check_decimal(char *token) {
     return is_decimal;
 }
 
+void convert_fractions(mpq_t result, const char *input) {
+    char *dot = strchr(input, '.');
+
+    char *fractions = dot + 1;
+
+    char **parts = g_strsplit(input, ".", -1);
+    char *denominator = g_strjoinv("", parts);
+    char *numerator = g_strdup_printf("%d", 10*strlen(fractions));
+    char *converted;
+
+
+    if (input[0] == '-') {
+        converted = g_strjoin("", "-", denominator, "/", numerator, nullptr);
+    } else {
+        converted = g_strjoin("", denominator, "/", numerator, nullptr);
+    }
+    mpq_set_str(result, converted, 10);
+
+    free(parts);
+    g_free(converted);
+}
+
+
+
+void mpq_pow(mpq_t result, mpq_t base, const int exp) {
+    // do pow for numerator and denominator independently
+    if (exp >= 0) {
+        mpz_pow_ui(mpq_numref(result), mpq_numref(base), exp);
+        mpz_pow_ui(mpq_denref(result), mpq_denref(base), exp);
+    } else {
+        // negative exponent broken
+        mpz_pow_ui(mpq_numref(result), mpq_denref(base), -exp);
+        mpz_pow_ui(mpq_denref(result), mpq_numref(base), -exp);
+    }
+    mpq_canonicalize(result);
+}
+
 
 // currently broken
 gboolean interpret_input(mpq_t result, char **tokens) {
@@ -106,33 +143,77 @@ gboolean interpret_input(mpq_t result, char **tokens) {
             // check for decimal
             // 0 => normal | 'd' => decimal | 'e' => e notation | 98 => decimal & e notation | 99 => normal & decimal e notation | 100 => decimal & decimal e notation, e.g. 4.4e5.5
             char decimal = check_decimal(tokens[i]);
-            char *num_as_string;
-            // TODO now check whether e in num (check if decimal == e || 98 || 99 || 100)
-            // then if not e run num through decimal to fractions function and use that return value
-            // or if e run both nums (before e and after e) through said function and multiply both and use that value
+
+            mpq_t x;
+            mpq_init(x);
+
+            if (decimal == 0) {
+              mpq_set_str(x, tokens[i], 10);
+            } else if (decimal == 'd') {
+                convert_fractions(x, tokens[i]);
+            } else if (decimal == 'e') {
+                mpq_t y, z;
+                mpq_init(y);
+                mpq_init(z);
+
+                char **parts = g_strsplit(tokens[i], "e", 2);
+                // set x to the int before e
+                mpq_set_str(x, parts[0], 10);
+
+                //set z to 10
+                mpq_set_str(z, "10", 10);
+
+                // set y to 10^whatever
+
+                mpq_pow(y, z, atoi(parts[1]));
+
+                // multiply x by y
+                mpq_mul(x, x, y);
+                mpq_canonicalize(x);
+
+                free(parts);
+                mpq_clear(y);
+                mpq_clear(z);
+            } else if (decimal == 98) {
+                mpq_t y, z;
+                mpq_init(y);
+                mpq_init(z);
+
+                char **parts = g_strsplit(tokens[i], "e", 2);
+
+                // make x be the fraction before e
+                convert_fractions(x, parts[0]);
+
+                // set z to 10
+                mpq_set_str(z, "10", 10);
+
+                // set y to 10^ whatever
+                mpq_pow(y, z, atoi(parts[1]));
+
+                // multiply x by y
+                mpq_mul(x, x, y);
+                mpq_canonicalize(x);
+
+                free(parts);
+                mpq_clear(y);
+            } else {
+                // num must be something e fraction (oftentimes irrational), no support yet
+                return false;
+            }
 
             if (i > 0) {
 
                 if (strcmp(check_type(tokens[i-1]), "-") == 0) {
-                    mpq_t x;
-                    mpq_init(x);
-                    mpq_set_str(x, tokens[i], 10);
                     mpq_sub(result, result, x);
                     mpq_canonicalize(result);
                     continue;
                 }
                 if (strcmp(check_type(tokens[i-1]), "*") == 0) {
-                    mpq_t x;
-                    mpq_init(x);
-                    mpq_set_str(x, tokens[i], 10);
                     mpq_mul(result, result, x);
                     mpq_canonicalize(result);
                     continue;
                 }
                 if (strcmp(check_type(tokens[i-1]), "/") == 0) {
-                    mpq_t x;
-                    mpq_init(x);
-                    mpq_set_str(x, tokens[i], 10);
                     mpq_div(result, result, x);
                     mpq_canonicalize(result);
                     continue;
@@ -141,11 +222,9 @@ gboolean interpret_input(mpq_t result, char **tokens) {
                     return false;
                 }
             }
-            mpq_t x;
-            mpq_init(x);
-            mpq_set_str(x, tokens[i], 10);
             mpq_add(result, result, x);
             mpq_canonicalize(result);
+            mpq_clear(x);
         }
     }
     mpq_canonicalize(result);
