@@ -30,6 +30,7 @@
                         <property name="hexpand">True</property>
                         <property name="margin-end">5</property>
                         <property name="placeholder-text">Enter calculation</property>
+                        <signal name="activate" handler="perform_calculation"/>
                       </object>
                     </child>
                     <child>
