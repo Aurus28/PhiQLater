@@ -134,6 +134,11 @@ gboolean interpret_input(mpq_t result, char **tokens) {
 
     mpq_set_str(result, "0", 10);
 
+    // TODO le plan:
+    // TODO i have to implement order of calculations (* & / before + & -)
+    // TODO also sort out this loop to its own function :)
+
+
     for (int i = 0; tokens[i] != NULL; i++) {
         if (strcmp(check_type(tokens[i]), "unidentified") == 0) {
             return false;
@@ -164,7 +169,6 @@ gboolean interpret_input(mpq_t result, char **tokens) {
                 mpq_set_str(z, "10", 10);
 
                 // set y to 10^whatever
-
                 mpq_pow(y, z, atoi(parts[1]));
 
                 // multiply x by y
