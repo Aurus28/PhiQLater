@@ -4,21 +4,12 @@ From Physics Calculator
 => Phi Q Later
 => φQLater
 
-
-
-TEST
-
-# Planung
-1.  Setup
-2.  Ole bringt sich 
-    1.  c                                                           [??%]
-    2.  "und wie die ganze Struktur außenrum funktioniert"          [90%]
-    bei
-3.  Window                                                          [??%]
-
+# Future will bring
 - [ ] brackets
+- [ ] ordered calculations
 - [ ] irrational numbers
-- [ ] enter to submit (fix its)
+- [X] enter to submit
+- [ ] fix naming scemes
 - [ ] option to round output & space large numbers or output them with e
 - [ ] units
 - [ ] "input panel" for e.g.:

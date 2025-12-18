@@ -5,6 +5,7 @@
 #include <gtk/gtk.h>
 #include <gmp.h>
 #include <string.h>
+#include <math.h>
 
 
 GRegex *regex;
@@ -98,7 +99,7 @@ void convert_fractions(mpq_t result, const char *input) {
 
     char **parts = g_strsplit(input, ".", -1);
     char *denominator = g_strjoinv("", parts);
-    char *numerator = g_strdup_printf("%d", 10*strlen(fractions));
+    char *numerator = g_strdup_printf("%d", (int) pow(10, (double) strlen(fractions)));
     char *converted;
 
 
@@ -265,7 +266,12 @@ char *tokens_into_one(gchar **input) {
 
 G_MODULE_EXPORT void perform_calculation(GtkWidget *widget, gpointer data) {
     //get the entry field
-    GtkWidget *entry = gtk_widget_get_prev_sibling(widget);
+    GtkWidget *entry;
+    if (GTK_IS_BUTTON(widget)) {
+        entry = gtk_widget_get_prev_sibling(widget);
+    } else {
+        entry = widget;
+    }
 
     // get the user input
     const char *input = gtk_editable_get_text(GTK_EDITABLE(entry));
