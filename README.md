@@ -15,6 +15,7 @@ From Physics Calculator
 - [ ] "input panel" for e.g.:
 - [ ] physical konstants
 - [ ] more Operations (power, root, log, differentiate, integrate, etc.)
+- [ ] option to use it on not only my device
 - [ ] settings
 - [ ] ans button
 - [ ] graphs

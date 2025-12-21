@@ -11,7 +11,7 @@
 GRegex *regex;
 
 
-gchar **parse_input(const char *input) {
+GPtrArray *parse_input(const char *input) {
     // prepare info variable
     GMatchInfo *match_info;
 
@@ -31,42 +31,37 @@ gchar **parse_input(const char *input) {
     // free thingos
     g_match_info_free(match_info);
 
-    return (gchar**) g_ptr_array_free(array, FALSE);
+    return array;
 }
 
-gchar *check_type(const char *token) {
+gchar check_type(const char *token) {
 
     switch (token[0]) {
         case '1':
-            return "num";
         case '2':
-            return "num";
         case '3':
-            return "num";
         case '4':
-            return "num";
         case '5':
-            return "num";
         case '6':
-            return "num";
         case '7':
-            return "num";
         case '8':
-            return "num";
         case '9':
-            return "num";
         case '0':
-            return "num";
+            return 'n';
         case '+':
-            return "+";
+            return '+';
         case '-':
-            return "-";
+            return '-';
         case '*':
-            return "*";
+            return '*';
         case '/':
-            return "/";
+            return '/';
+        case '(':
+            return '(';
+        case ')':
+            return ')';
         default:
-            return "unidentified";
+            return 'u';
     }
 }
 
@@ -92,7 +87,7 @@ char check_decimal(const char *token) {
     return is_decimal;
 }
 
-void convert_fractions(mpq_t result, const char *input) {
+void mpq_set_str_fractions(mpq_t result, const char *input) {
     char *dot = strchr(input, '.');
 
     char *fractions = dot + 1;
@@ -130,111 +125,237 @@ void mpq_pow(mpq_t result, mpq_t base, const int exp) {
 }
 
 
-// currently broken
-gboolean interpret_input(mpq_t result, char **tokens) {
+gboolean mpq_set_str_e(mpq_t result, const char* input) {
+    // check for decimal
+    // 0 => normal | 'd' => decimal | 'e' => e notation | 98 => decimal & e notation | 99 => normal & decimal e notation | 100 => decimal & decimal e notation, e.g. 4.4e5.5
+    char decimal = check_decimal(input);
 
-    mpq_set_str(result, "0", 10);
+    if (decimal == 0) {
+        mpq_set_str(result, input, 10);
+    } else if (decimal == 'd') {
+        mpq_set_str_fractions(result, input);
+    } else if (decimal == 'e') {
+        mpq_t y, z;
+        mpq_init(y);
+        mpq_init(z);
 
-    // TODO le plan:
-    // TODO i have to implement order of calculations (* & / before + & -)
-    // TODO also sort out this loop to its own function :)
+        char **parts = g_strsplit(input, "e", 2);
+        // set x to the int before e
+        mpq_set_str(result, parts[0], 10);
 
+        //set z to 10
+        mpq_set_str(z, "10", 10);
 
-    for (int i = 0; tokens[i] != NULL; i++) {
-        if (strcmp(check_type(tokens[i]), "unidentified") == 0) {
-            return false;
-        }
-        // if num: check prev token. then do ret (+,-,*,/) num. if not num continue if there is no prev token just add num or if prev token also num then return an error
-        if (strcmp(check_type(tokens[i]), "num") == 0) {
-            // check for decimal
-            // 0 => normal | 'd' => decimal | 'e' => e notation | 98 => decimal & e notation | 99 => normal & decimal e notation | 100 => decimal & decimal e notation, e.g. 4.4e5.5
-            char decimal = check_decimal(tokens[i]);
+        // set y to 10^whatever
+        mpq_pow(y, z, atoi(parts[1]));
 
-            mpq_t x;
-            mpq_init(x);
+        // multiply x by y
+        mpq_mul(result, result, y);
+        mpq_canonicalize(result);
 
-            if (decimal == 0) {
-              mpq_set_str(x, tokens[i], 10);
-            } else if (decimal == 'd') {
-                convert_fractions(x, tokens[i]);
-            } else if (decimal == 'e') {
-                mpq_t y, z;
-                mpq_init(y);
-                mpq_init(z);
+        free(parts);
+        mpq_clear(y);
+        mpq_clear(z);
+    } else if (decimal == 98) {
+        mpq_t y, z;
+        mpq_init(y);
+        mpq_init(z);
 
-                char **parts = g_strsplit(tokens[i], "e", 2);
-                // set x to the int before e
-                mpq_set_str(x, parts[0], 10);
+        char **parts = g_strsplit(input, "e", 2);
 
-                //set z to 10
-                mpq_set_str(z, "10", 10);
+        // make x be the fraction before e
+        mpq_set_str_fractions(result, parts[0]);
 
-                // set y to 10^whatever
-                mpq_pow(y, z, atoi(parts[1]));
+        // set z to 10
+        mpq_set_str(z, "10", 10);
 
-                // multiply x by y
-                mpq_mul(x, x, y);
-                mpq_canonicalize(x);
+        // set y to 10^ whatever
+        mpq_pow(y, z, atoi(parts[1]));
 
-                free(parts);
-                mpq_clear(y);
-                mpq_clear(z);
-            } else if (decimal == 98) {
-                mpq_t y, z;
-                mpq_init(y);
-                mpq_init(z);
+        // multiply x by y
+        mpq_mul(result, result, y);
+        mpq_canonicalize(result);
 
-                char **parts = g_strsplit(tokens[i], "e", 2);
-
-                // make x be the fraction before e
-                convert_fractions(x, parts[0]);
-
-                // set z to 10
-                mpq_set_str(z, "10", 10);
-
-                // set y to 10^ whatever
-                mpq_pow(y, z, atoi(parts[1]));
-
-                // multiply x by y
-                mpq_mul(x, x, y);
-                mpq_canonicalize(x);
-
-                free(parts);
-                mpq_clear(y);
-            } else {
-                // num must be something e fraction (oftentimes irrational), no support yet
-                return false;
-            }
-
-            if (i > 0) {
-
-                if (strcmp(check_type(tokens[i-1]), "-") == 0) {
-                    mpq_sub(result, result, x);
-                    mpq_canonicalize(result);
-                    continue;
-                }
-                if (strcmp(check_type(tokens[i-1]), "*") == 0) {
-                    mpq_mul(result, result, x);
-                    mpq_canonicalize(result);
-                    continue;
-                }
-                if (strcmp(check_type(tokens[i-1]), "/") == 0) {
-                    mpq_div(result, result, x);
-                    mpq_canonicalize(result);
-                    continue;
-                }
-                if (strcmp(check_type(tokens[i-1]), "num") == 0) {
-                    return false;
-                }
-            }
-            mpq_add(result, result, x);
-            mpq_canonicalize(result);
-            mpq_clear(x);
-        }
+        free(parts);
+        mpq_clear(y);
+    } else {
+        // num must be something e fraction (oftentimes irrational), no support yet
+        return false;
     }
-    mpq_canonicalize(result);
     return true;
 }
+
+gboolean interpret_input(mpq_t result, GPtrArray *tokens) {
+    mpq_set_str(result, "0", 10);
+
+    // check if there are as many '(' as ')'
+    int count_brackets = 0;
+    for (int i = 0; i < tokens->len -1; i++) {
+        if (count_brackets < 0) return false;
+        if (check_type(g_ptr_array_index(tokens, i)) == '(') count_brackets++;
+        if (check_type(g_ptr_array_index(tokens, i)) == ')') count_brackets--;
+    }
+    if (count_brackets != 0) return false;
+
+    gboolean done = false;
+    while (true) {
+        done = true;
+        for (int i = 0; i < tokens->len -1; i++) {
+            if (check_type(g_ptr_array_index(tokens, i)) == '(') {
+                done = false;
+                break;
+            }
+        }
+        if (done) break;
+
+        int latest_idx = 0;
+
+        for (int i = 0; i < tokens->len -1; i++) {
+            if (check_type(g_ptr_array_index(tokens, i)) == '(') latest_idx = i;
+            if (check_type(g_ptr_array_index(tokens, i)) == ')') break;
+        }
+        g_print("index of found '(': %d\n", latest_idx);
+
+        mpq_t x;
+        mpq_init(x);
+        mpq_set_str(x, "0", 10);
+
+        gboolean partially_done = false;
+        for (int i = latest_idx + 1; !partially_done; i++) {
+            switch (check_type(g_ptr_array_index(tokens, i))) {
+                case 'n':
+                    mpq_t y;
+                    mpq_init(y);
+
+                    mpq_set_str_e(y, g_ptr_array_index(tokens, i));
+
+                    switch (check_type(g_ptr_array_index(tokens, i -1))) {
+                        case '(':
+                        case '+':
+                            mpq_add(x, x, y);
+                            break;
+                        case '-':
+                            mpq_sub(x, x, y);
+                            break;
+                        case '*':
+                            mpq_mul(x, x, y);
+                            break;
+                        case '/':
+                            mpq_div(x, x, y);
+                            break;
+                        default:
+                            // has to be smth wrong
+                            return false;
+                    }
+                    mpq_canonicalize(x);
+                    break;
+                case '+':
+                case '-':
+                case '*':
+                case '/':
+                    break;
+                case ')':
+                    for (int j = i; j>= latest_idx; j--) {
+                        g_ptr_array_remove_index(tokens, j);
+                    }
+                    g_ptr_array_insert(tokens, latest_idx, g_strdup(mpq_get_str(nullptr, 10, x)));
+
+                    partially_done = true;
+                    break;
+                default:
+                    return false;
+            }
+        }
+    }
+
+    for (int i = 0; i < tokens->len -1; i++) {
+        g_print ("token: %s\n", g_ptr_array_index(tokens, i));
+        switch (check_type(g_ptr_array_index(tokens, i))) {
+            case 'n':
+                mpq_t y;
+                mpq_init(y);
+
+                mpq_set_str_e(y, g_ptr_array_index(tokens, i));
+                if (i == 0) {
+                    mpq_add(result, result, y);
+                    break;
+                }
+
+                switch (check_type(g_ptr_array_index(tokens, i -1))) {
+                    case '+':
+                        mpq_add(result, result, y);
+                        break;
+                    case '-':
+                        mpq_sub(result, result, y);
+                        break;
+                    case '*':
+                        mpq_mul(result, result, y);
+                        break;
+                    case '/':
+                        mpq_div(result, result, y);
+                        break;
+                    default:
+                        // has to be smth wrong
+                        return false;
+                }
+                mpq_canonicalize(result);
+                break;
+            case '+':
+            case '-':
+            case '*':
+            case '/':
+                break;
+            default:
+                return false;
+        }
+    }
+    return true;
+}
+
+// gboolean interpret_input(mpq_t result, char **tokens) {
+//
+//     mpq_set_str(result, "0", 10);
+//
+//     for (int i = 0; tokens[i] != NULL; i++) {
+//         if (strcmp(check_type(tokens[i]), "unidentified") == 0) {
+//             return false;
+//         }
+//         // if num: check prev token. then do ret (+,-,*,/) num. if not num continue if there is no prev token just add num or if prev token also num then return an error
+//         if (strcmp(check_type(tokens[i]), "num") == 0) {
+//
+//             mpq_t x;
+//             mpq_init(x);
+//             if (!mpq_set_str_e(x, tokens[i])) return false;
+//
+//             if (i > 0) {
+//
+//                 if (strcmp(check_type(tokens[i-1]), "-") == 0) {
+//                     mpq_sub(result, result, x);
+//                     mpq_canonicalize(result);
+//                     continue;
+//                 }
+//                 if (strcmp(check_type(tokens[i-1]), "*") == 0) {
+//                     mpq_mul(result, result, x);
+//                     mpq_canonicalize(result);
+//                     continue;
+//                 }
+//                 if (strcmp(check_type(tokens[i-1]), "/") == 0) {
+//                     mpq_div(result, result, x);
+//                     mpq_canonicalize(result);
+//                     continue;
+//                 }
+//                 if (strcmp(check_type(tokens[i-1]), "num") == 0) {
+//                     return false;
+//                 }
+//             }
+//             mpq_add(result, result, x);
+//             mpq_canonicalize(result);
+//             mpq_clear(x);
+//         }
+//     }
+//     mpq_canonicalize(result);
+//     return true;
+// }
 
 GtkWidget *create_row() {
     // get widget from file
@@ -252,15 +373,8 @@ GtkWidget *create_row() {
 }
 
 //sidequest
-char *tokens_into_one(gchar **input) {
-    GString *builder = g_string_new(nullptr);
-
-    for (int i = 0; input[i] != NULL; i++) {
-        g_string_append(builder, input[i]);
-        g_string_append(builder, " | ");
-    }
-
-    return g_string_free(builder, FALSE); // returns char*, do NOT free builder
+char *tokens_into_one(const GPtrArray *input) {
+    return g_strjoinv(" ", (gchar **)input->pdata);
 }
 
 
@@ -288,7 +402,7 @@ G_MODULE_EXPORT void perform_calculation(GtkWidget *widget, gpointer data) {
     GtkWidget *parent = gtk_widget_get_parent(widget);
     GtkWidget *output = gtk_widget_get_next_sibling(parent);
 
-    gchar **tokens = parse_input(input);
+    GPtrArray *tokens = parse_input(input);
 
     // debugging
     char *tokenised_str = tokens_into_one(tokens);
@@ -325,7 +439,8 @@ G_MODULE_EXPORT void perform_calculation(GtkWidget *widget, gpointer data) {
     }
 
     // free memory
-    g_strfreev(tokens);
+    g_print("freeing...\n");
+    g_ptr_array_free(tokens, TRUE);
     g_free(tokenised_str);
 }
 
