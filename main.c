@@ -185,8 +185,16 @@ gboolean mpq_set_str_e(mpq_t result, const char* input) {
     return true;
 }
 
+gboolean add_brackets_for_order(GPtrArray *tokens) {
+
+
+    return true;
+}
+
 gboolean interpret_input(mpq_t result, GPtrArray *tokens) {
     mpq_set_str(result, "0", 10);
+
+    if (!add_brackets_for_order(tokens)) return false;
 
     // check if there are as many '(' as ')'
     int count_brackets = 0;
@@ -199,6 +207,8 @@ gboolean interpret_input(mpq_t result, GPtrArray *tokens) {
 
     gboolean done = false;
     while (true) {
+
+        // check if there are brackets left
         done = true;
         for (int i = 0; i < tokens->len -1; i++) {
             if (check_type(g_ptr_array_index(tokens, i)) == '(') {
@@ -208,6 +218,8 @@ gboolean interpret_input(mpq_t result, GPtrArray *tokens) {
         }
         if (done) break;
 
+
+        // find index of innermost opening bracket
         int latest_idx = 0;
 
         for (int i = 0; i < tokens->len -1; i++) {
@@ -222,6 +234,8 @@ gboolean interpret_input(mpq_t result, GPtrArray *tokens) {
 
         gboolean partially_done = false;
         for (int i = latest_idx + 1; !partially_done; i++) {
+
+            // TODO: Sort this out to its own function
             switch (check_type(g_ptr_array_index(tokens, i))) {
                 case 'n':
                     mpq_t y;
@@ -255,6 +269,7 @@ gboolean interpret_input(mpq_t result, GPtrArray *tokens) {
                 case '/':
                     break;
                 case ')':
+                    // remove the brackets expression and add the result of it in its place
                     for (int j = i; j>= latest_idx; j--) {
                         g_ptr_array_remove_index(tokens, j);
                     }
@@ -268,6 +283,8 @@ gboolean interpret_input(mpq_t result, GPtrArray *tokens) {
         }
     }
 
+
+    // all the brackets are gone so now just do the rest
     for (int i = 0; i < tokens->len -1; i++) {
         g_print ("token: %s\n", g_ptr_array_index(tokens, i));
         switch (check_type(g_ptr_array_index(tokens, i))) {
@@ -312,50 +329,6 @@ gboolean interpret_input(mpq_t result, GPtrArray *tokens) {
     return true;
 }
 
-// gboolean interpret_input(mpq_t result, char **tokens) {
-//
-//     mpq_set_str(result, "0", 10);
-//
-//     for (int i = 0; tokens[i] != NULL; i++) {
-//         if (strcmp(check_type(tokens[i]), "unidentified") == 0) {
-//             return false;
-//         }
-//         // if num: check prev token. then do ret (+,-,*,/) num. if not num continue if there is no prev token just add num or if prev token also num then return an error
-//         if (strcmp(check_type(tokens[i]), "num") == 0) {
-//
-//             mpq_t x;
-//             mpq_init(x);
-//             if (!mpq_set_str_e(x, tokens[i])) return false;
-//
-//             if (i > 0) {
-//
-//                 if (strcmp(check_type(tokens[i-1]), "-") == 0) {
-//                     mpq_sub(result, result, x);
-//                     mpq_canonicalize(result);
-//                     continue;
-//                 }
-//                 if (strcmp(check_type(tokens[i-1]), "*") == 0) {
-//                     mpq_mul(result, result, x);
-//                     mpq_canonicalize(result);
-//                     continue;
-//                 }
-//                 if (strcmp(check_type(tokens[i-1]), "/") == 0) {
-//                     mpq_div(result, result, x);
-//                     mpq_canonicalize(result);
-//                     continue;
-//                 }
-//                 if (strcmp(check_type(tokens[i-1]), "num") == 0) {
-//                     return false;
-//                 }
-//             }
-//             mpq_add(result, result, x);
-//             mpq_canonicalize(result);
-//             mpq_clear(x);
-//         }
-//     }
-//     mpq_canonicalize(result);
-//     return true;
-// }
 
 GtkWidget *create_row() {
     // get widget from file
