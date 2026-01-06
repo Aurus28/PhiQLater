@@ -416,6 +416,7 @@ G_MODULE_EXPORT void perform_calculation(GtkWidget *widget, gpointer data) {
 
     if (worked) {
         // now make it String
+        mpq_canonicalize(result);
         char *str = mpq_get_str(nullptr, 10, result);
 
         // set output

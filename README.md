@@ -5,7 +5,7 @@ From Physics Calculator
 => φQLater
 
 # Future will bring
-- [ ] brackets
+- [X] brackets
 - [ ] ordered calculations
 - [ ] irrational numbers
 - [X] enter to submit
