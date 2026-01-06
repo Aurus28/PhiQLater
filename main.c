@@ -186,7 +186,7 @@ gboolean mpq_set_str_e(mpq_t result, const char* input) {
 }
 
 gboolean add_brackets_for_order(GPtrArray *tokens) {
-
+    // TODO: do this
 
     return true;
 }
@@ -235,7 +235,6 @@ gboolean interpret_input(mpq_t result, GPtrArray *tokens) {
         gboolean partially_done = false;
         for (int i = latest_idx + 1; !partially_done; i++) {
 
-            // TODO: Sort this out to its own function
             switch (check_type(g_ptr_array_index(tokens, i))) {
                 case 'n':
                     mpq_t y;
