@@ -6,10 +6,10 @@ From Physics Calculator
 
 # Future will bring
 - [X] brackets
-- [ ] ordered calculations
+- [X] ordered calculations
 - [ ] irrational numbers
 - [X] enter to submit
-- [ ] fix naming scemes
+- [X] fix naming scemes
 - [ ] option to round output & space large numbers or output them with e
 - [ ] units
 - [ ] "input panel" for e.g.:
