@@ -33,3 +33,9 @@ default/
 *.tmp
 .cache/
 .idea/
+
+# --- Flatpak Junk ---
+repo/
+build-dir/
+
+

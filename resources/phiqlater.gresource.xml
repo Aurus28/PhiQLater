@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gresources>
+    <gresource prefix="/de/aurus28/PhiQLater">
+        <file>resources/phiqlater.ui</file>
+        <file>resources/calc_row.ui</file>
+    </gresource>
+</gresources>

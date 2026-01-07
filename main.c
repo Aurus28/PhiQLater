@@ -412,7 +412,7 @@ gboolean interpret_input(mpq_t result, GPtrArray *tokens) {
 
 GtkWidget *create_row() {
     // get widget from file
-    GtkBuilder *builder = gtk_builder_new_from_file("/home/aurus28/Documents/PhiQLater/calc_row.ui");
+    GtkBuilder *builder = gtk_builder_new_from_resource("/de/aurus28/PhiQLater/resources/calc_row.ui");
     GtkWidget *row = GTK_WIDGET(gtk_builder_get_object(builder, "row_root"));
 
     // keep widget alive
@@ -495,7 +495,7 @@ G_MODULE_EXPORT void perform_calculation(GtkWidget *widget, gpointer data) {
 static void on_activate (GtkApplication *app) {
 
     // assign things
-    GtkBuilder *builder = gtk_builder_new_from_file("/home/aurus28/Documents/PhiQLater/phiqlater.ui");
+    GtkBuilder *builder = gtk_builder_new_from_resource("/de/aurus28/PhiQLater/resources/phiqlater.ui");
     GObject *window = gtk_builder_get_object(builder, "main_window");
 
     // error handling
