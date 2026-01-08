@@ -6,6 +6,7 @@
 #include <gmp.h>
 #include <string.h>
 #include <math.h>
+#include <mpfr.h>
 
 
 GRegex *regex;
@@ -425,7 +426,7 @@ GtkWidget *create_row() {
     return row;
 }
 
-G_MODULE_EXPORT void perform_calculation(GtkWidget *widget, gpointer data) {
+G_MODULE_EXPORT void on_calculation_submit(GtkWidget *widget, gpointer data) {
     //get the entry field
     GtkWidget *entry;
     if (GTK_IS_BUTTON(widget)) {
@@ -487,7 +488,7 @@ G_MODULE_EXPORT void perform_calculation(GtkWidget *widget, gpointer data) {
     }
 
     // free memory
-    g_print("freeing...\n");
+    // g_print("freeing...\n");
     g_ptr_array_free(tokens, TRUE);
     g_free(tokenised_str);
 }

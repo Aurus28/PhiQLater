@@ -24,6 +24,7 @@ From Physics Calculator
 # Future will bring
 - [X] brackets
 - [X] order of operations
+- [ ] enums for all the times u use chars as tags omg I hate myself why did I learn about this so late now I have to do multiple hours of changing this but it's so much better :crying:
 - [ ] irrational numbers
 - [X] enter to submit
 - [X] fix naming schemes

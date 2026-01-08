@@ -5,6 +5,7 @@ find_program(GLIB_COMPILE_RESOURCES NAMES glib-compile-resources REQUIRED)
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(GTK4 REQUIRED gtk4)
 pkg_check_modules(GMP REQUIRED gmp)
+pkg_check_modules(MPFR REQUIRED mpfr)
 
 
 set(RESOURCE resources/phiqlater.gresource.xml)
@@ -36,8 +37,8 @@ set_source_files_properties(
 
 add_dependencies(${PROJECT_NAME} ui-resource)
 
-target_include_directories(PhiQLater PRIVATE ${GTK4_INCLUDE_DIRS} ${GMP_INCLUDE_DIRS})
-target_link_libraries(PhiQLater  PRIVATE ${GTK4_LIBRARIES} ${GMP_LIBRARIES} m)
+target_include_directories(PhiQLater PRIVATE ${GTK4_INCLUDE_DIRS} ${GMP_INCLUDE_DIRS} ${MPFR_INCLUDE_DIRS})
+target_link_libraries(PhiQLater  PRIVATE ${GTK4_LIBRARIES} ${GMP_LIBRARIES} ${MPFR_LIBRARIES} m)
 target_compile_options(PhiQLater PRIVATE ${GTK4_CFLAGS_OTHER})
 
 

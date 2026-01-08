@@ -19,7 +19,7 @@
             <property name="hexpand">True</property>
             <property name="orientation">vertical</property>
             <child>
-              <object class="GtkBox">
+              <object class="GtkBox" id="row_root">
                 <property name="margin-bottom">5</property>
                 <property name="orientation">vertical</property>
                 <child>
@@ -30,13 +30,13 @@
                         <property name="hexpand">True</property>
                         <property name="margin-end">5</property>
                         <property name="placeholder-text">Enter calculation</property>
-                        <signal name="activate" handler="perform_calculation"/>
+                        <signal name="activate" handler="on_calculation_submit"/>
                       </object>
                     </child>
                     <child>
                       <object class="GtkButton">
                         <property name="icon-name">document-send</property>
-                        <signal name="clicked" handler="perform_calculation"/>
+                        <signal name="clicked" handler="on_calculation_submit"/>
                       </object>
                     </child>
                   </object>
