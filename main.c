@@ -8,13 +8,33 @@
 #include <math.h>
 #include <mpfr.h>
 
+// constants (maybe later user editable)
+const mpfr_prec_t MPFR_PRECISION = 256;
+constexpr int MPFR_OUTPUT_DECIMAL_DIGITS = 20;
+
 
 GRegex *regex;
 typedef struct Token {
-    char type; // n: number | u: undefined | +-*/(): that sign | to be continued
+    char type; // n: number | u: undefined | +-*/(): that sign | to be continued TODO: change to enum
     char *value;
     char owner; // u: user (by entering his input) | o: order of operations
 } Token;
+
+typedef enum NumberType {
+    RATIONAL,
+    IRRATIONAL
+} NumberType;
+
+// TODO: needs functions to change type etc.
+typedef struct Number {
+    NumberType type;
+    union {
+        mpq_t mpq;
+        mpfr_t mpfr;
+    } value;
+} Number;
+
+
 
 void free_token(Token *t) {
     g_free(t->value);
@@ -90,7 +110,7 @@ void set_types(const GPtrArray *tokens) {
 }
 
 char check_decimal(const char *token) {
-    char is_decimal = 0; // 0 => normal | 'd' => decimal | 'e' => e notation | 98 => decimal & e notation | 99 => normal & decimal e notation | 100 => decimal & decimal e notation, e.g. 4.4e5.5
+    char is_decimal = 0; // 0 => normal | 'd' => decimal | 'e' => e notation | 98 => decimal & e notation | 99 => normal & decimal e notation | 100 => decimal & decimal e notation, e.g. 4.4e5.5 TODO: change to enum; also add this to the tokens struct
     for (int j = 0; token[j] != '\0'; j++) {
         if (token[j] == '.') {
             if (is_decimal == 0) {
