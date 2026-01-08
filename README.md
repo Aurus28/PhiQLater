@@ -4,6 +4,22 @@ From Physics Calculator
 => Phi Q Later
 => φQLater
 
+# Installation Instructions
+1. clone the repository (or manually download just 'install.sh' and 'phiqlater.flatpak' and put them in the same directory)
+   
+    ```git clone https://github.com/Aurus28/PhiQLater.git```
+2. run install.sh inside the directory
+   
+    ```cd PhiQLater```
+
+   ```./install.sh```
+3. start the app
+   
+    ```flatpak run de.aurus28.PhiQLater```
+4. uninstalling:
+   
+    ```flatpak uninstall de.aurus28.PhiQLater```
+
 # Future will bring
 - [X] brackets
 - [X] ordered calculations
