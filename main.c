@@ -9,8 +9,7 @@
 #include <mpfr.h>
 
 // constants (maybe later user editable)
-const mpfr_prec_t MPFR_PRECISION = 256;
-constexpr int MPFR_OUTPUT_DECIMAL_DIGITS = 20;
+constexpr int MPQ_PRECISION = 50;
 
 
 GRegex *regex;
@@ -20,25 +19,49 @@ typedef struct Token {
     char owner; // u: user (by entering his input) | o: order of operations
 } Token;
 
-typedef enum NumberType {
-    RATIONAL,
-    IRRATIONAL
-} NumberType;
+typedef enum PreciseType {
+    MPQ,
+    STRING
+} PreciseType;
 
-// TODO: needs functions to change type etc.
+typedef enum DecimalType {
+    NORMAL,
+    DECIMAL,
+    E_NOTATION,
+    DECIMAL_AND_E,
+    DECIMAL_E,
+    DECIMAL_AND_DECIMAL_E
+} DecimalType;
+
 typedef struct Number {
-    NumberType type;
-    union {
-        mpq_t mpq;
-        mpfr_t mpfr;
-    } value;
+    mpq_t mpq;
+    char *irrational_depiction;
+    PreciseType precise_type; // to store whether mpq is as precise as it gets or if other way of depiction are more precise
 } Number;
 
+void number_init(Number *number) {
+    mpq_init(number->mpq);
+    mpq_set_str(number->mpq, "0", 10);
+    number->irrational_depiction = strdup("");
+    number->precise_type = MPQ;
+}
+
+gboolean number_set_str(Number *number, const char *input) {
+    number->precise_type = MPQ;
+    mpq_set_str(number->mpq, input, 10);
+    return true;
+}
 
 
 void free_token(Token *t) {
     g_free(t->value);
     g_free(t);
+}
+
+void free_number(Number *n) {
+    g_free(n->irrational_depiction);
+    mpq_clear(n->mpq);
+    g_free(n);
 }
 
 GPtrArray *tokenize(const char *input) {
@@ -110,25 +133,25 @@ void set_types(const GPtrArray *tokens) {
 }
 
 char check_decimal(const char *token) {
-    char is_decimal = 0; // 0 => normal | 'd' => decimal | 'e' => e notation | 98 => decimal & e notation | 99 => normal & decimal e notation | 100 => decimal & decimal e notation, e.g. 4.4e5.5 TODO: change to enum; also add this to the tokens struct
+    DecimalType dt = NORMAL;
     for (int j = 0; token[j] != '\0'; j++) {
         if (token[j] == '.') {
-            if (is_decimal == 0) {
-                is_decimal = 'd';
-            } else if (is_decimal == 'e') {
-                is_decimal = 99;
+            if (dt == NORMAL) {
+                dt = DECIMAL;
+            } else if (dt == E_NOTATION) {
+                dt = DECIMAL_E;
             } else {
-                is_decimal = 100;
+                dt = DECIMAL_AND_DECIMAL_E;
             }
         } else if (token[j] == 'e') {
-            if (is_decimal == 0) {
-                is_decimal = 'e';
-            } else if (is_decimal == 'd') {
-                is_decimal = 98;
+            if (dt == NORMAL) {
+                dt = E_NOTATION;
+            } else if (dt == DECIMAL) {
+                dt = DECIMAL_AND_E;
             }
         }
     }
-    return is_decimal;
+    return dt;
 }
 
 void mpq_set_str_fractions(mpq_t result, const char *input) {
@@ -153,6 +176,77 @@ void mpq_set_str_fractions(mpq_t result, const char *input) {
     g_free(converted);
 }
 
+void mpq_decimal_approximator (mpq_t result, mpfr_t numerator, mpfr_t denominator) {
+    // init help variable and set it to a 1 with MPQ_PRECISION zeros
+    mpfr_t multiplier;
+    mpfr_init2(multiplier, MPQ_PRECISION * 4);
+
+    mpfr_set_ui(multiplier, 10, MPFR_RNDN);
+    mpfr_pow_ui(multiplier, multiplier, MPQ_PRECISION, MPFR_RNDN);
+
+    // multiply numerator and denominator by that number
+    mpfr_mul(numerator, numerator, multiplier, MPFR_RNDN);
+    mpfr_mul(denominator, denominator, multiplier, MPFR_RNDN);
+
+    // ignore any more decimal numbers and set both to numerator and denominator of the mpq_t
+    mpfr_get_z(mpq_numref(result), numerator, MPFR_RNDN);
+    mpfr_get_z(mpq_denref(result), denominator, MPFR_RNDN);
+
+    g_print("result: %s\n", mpq_get_str(nullptr, 10, result));
+
+    mpq_canonicalize(result);
+    mpfr_clear(multiplier);
+}
+
+void mpq_pow_decimal(mpq_t result, mpq_t base, mpq_t exp) {
+    mpq_canonicalize(base);
+    mpq_canonicalize(exp);
+
+    // for later save if exp was negative
+    gboolean negative = false;
+    if (mpq_sgn(exp) < 0) negative = true;
+
+    // get absolute value of exp
+    mpq_abs(exp, exp);
+
+    // power with exponents numerator
+    mpz_pow_ui(mpq_numref(result), mpq_numref(base), mpz_get_ui(mpq_numref(exp)));
+    mpz_pow_ui(mpq_denref(result), mpq_denref(base), mpz_get_ui(mpq_numref(exp)));
+
+    // then root with exponents denominator
+    mpfr_t num, den;
+    mpfr_init2(num, MPQ_PRECISION * 4);
+    mpfr_init2(den, MPQ_PRECISION * 4);
+
+
+    mpfr_set_z(num, mpq_numref(result), MPFR_RNDN);
+    mpfr_set_z(den, mpq_denref(result), MPFR_RNDN);
+
+    mpfr_rootn_ui(num, num, mpz_get_ui(mpq_denref(exp)), MPFR_RNDN);
+    mpfr_rootn_ui(den, den, mpz_get_ui(mpq_denref(exp)), MPFR_RNDN);
+
+    // if exponent was negative swap numerator and denominator
+    if (negative) {
+        mpfr_t tmp;
+        mpfr_init2(tmp, MPQ_PRECISION * 4);
+
+        // tmp = num
+        mpfr_set(tmp, num, MPFR_RNDN);
+
+        // num = den
+        mpfr_set(num, den, MPFR_RNDN);
+
+        // den = tmp
+        mpfr_set(den, tmp, MPFR_RNDN);
+
+        mpfr_clear(tmp);
+    }
+
+    mpq_decimal_approximator(result, num, den);
+
+    mpfr_clear(num);
+    mpfr_clear(den);
+}
 
 
 void mpq_pow(mpq_t result, mpq_t base, const int exp) {
@@ -161,7 +255,6 @@ void mpq_pow(mpq_t result, mpq_t base, const int exp) {
         mpz_pow_ui(mpq_numref(result), mpq_numref(base), exp);
         mpz_pow_ui(mpq_denref(result), mpq_denref(base), exp);
     } else {
-        // negative exponent broken
         mpz_pow_ui(mpq_numref(result), mpq_denref(base), -exp);
         mpz_pow_ui(mpq_denref(result), mpq_numref(base), -exp);
     }
@@ -171,20 +264,20 @@ void mpq_pow(mpq_t result, mpq_t base, const int exp) {
 
 gboolean mpq_set_str_fractions_and_e(mpq_t result, const char* input) {
     // check for decimal
-    // 0 => normal | 'd' => decimal | 'e' => e notation | 98 => decimal & e notation | 99 => normal & decimal e notation | 100 => decimal & decimal e notation, e.g. 4.4e5.5
-    char decimal = check_decimal(input);
+    const DecimalType decimal = check_decimal(input);
+    g_print("Decimal: %d\n", decimal);
 
     if (decimal == 0) {
         mpq_set_str(result, input, 10);
-    } else if (decimal == 'd') {
+    } else if (decimal == DECIMAL) {
         mpq_set_str_fractions(result, input);
-    } else if (decimal == 'e') {
+    } else if (decimal == E_NOTATION) {
         mpq_t y, z;
         mpq_init(y);
         mpq_init(z);
 
         char **parts = g_strsplit(input, "e", 2);
-        // set x to the int before e
+        // set result to the int before e
         mpq_set_str(result, parts[0], 10);
 
         //set z to 10
@@ -193,21 +286,21 @@ gboolean mpq_set_str_fractions_and_e(mpq_t result, const char* input) {
         // set y to 10^whatever
         mpq_pow(y, z, atoi(parts[1]));
 
-        // multiply x by y
+        // multiply result by y
         mpq_mul(result, result, y);
         mpq_canonicalize(result);
 
         free(parts);
         mpq_clear(y);
         mpq_clear(z);
-    } else if (decimal == 98) {
+    } else if (decimal == DECIMAL_AND_E) {
         mpq_t y, z;
         mpq_init(y);
         mpq_init(z);
 
         char **parts = g_strsplit(input, "e", 2);
 
-        // make x be the fraction before e
+        // make result be the fraction before e
         mpq_set_str_fractions(result, parts[0]);
 
         // set z to 10
@@ -216,47 +309,88 @@ gboolean mpq_set_str_fractions_and_e(mpq_t result, const char* input) {
         // set y to 10^ whatever
         mpq_pow(y, z, atoi(parts[1]));
 
-        // multiply x by y
+        // multiply result by y
         mpq_mul(result, result, y);
         mpq_canonicalize(result);
 
         free(parts);
         mpq_clear(y);
+        mpq_clear(z);
+    } else if (decimal == DECIMAL_E || decimal == DECIMAL_AND_DECIMAL_E) {
+        mpq_t y, z;
+        mpq_init(y);
+        mpq_init(z);
+
+        char **parts = g_strsplit(input, "e", 2);
+
+        // make result be the fraction before e
+        mpq_set_str_fractions(result, parts[0]);
+        g_print("before e: %s\n", mpq_get_str(nullptr, 10, result));
+
+
+        // set z to 10
+        mpq_set_str(z, "10", 10);
+
+        //check if e-...
+        gboolean minus = false;
+        if (parts[1][0] == '-') {
+            memmove(parts[1], parts[1] + 1, strlen(parts[1]));
+            minus = true;
+        }
+        mpq_t exponent;
+        mpq_init(exponent);
+        mpq_set_str_fractions(exponent, parts[1]);
+        if (minus) mpq_neg(exponent, exponent);
+        mpq_canonicalize(exponent);
+        g_print("Exponent: %s\n", mpq_get_str(nullptr, 10, exponent));
+
+        // set y to 10^ whatever
+        mpq_pow_decimal(y, z, exponent);
+
+        // multiply result by y
+        mpq_mul(result, result, y);
+        mpq_canonicalize(result);
+        g_print("finalresult: %s\n", mpq_get_str(nullptr, 10, result));
+
+        free(parts);
+        mpq_clear(y);
+        mpq_clear(z);
+        mpq_clear(exponent);
     } else {
-        // num must be something e fraction (oftentimes irrational), no support yet
+        // something must be wrong
         return false;
     }
     return true;
 }
 
 // only works if tokens are only numbers and basic operations!!!
-int combine_tokens_to_mpq(int start, const GPtrArray *tokens, mpq_t result) {
+int combine_tokens_to_mpq(int start, const GPtrArray *tokens, Number *result) {
     for (int i = start; i < tokens->len; i++) {
 
         const Token *t1 = g_ptr_array_index(tokens, i);
 
         switch (t1->type) {
             case 'n':
-                mpq_t y;
-                mpq_init(y);
+                Number *y = g_new0(Number, 1);
+                number_init(y);
 
-                mpq_set_str_fractions_and_e(y, t1->value);
+                mpq_set_str_fractions_and_e(y->mpq, t1->value);
 
                 if (i > 0) {
                     const Token *t2 = g_ptr_array_index(tokens, i-1);
                     switch (t2->type) {
                         case '(':
                         case '+':
-                            mpq_add(result, result, y);
+                            mpq_add(result->mpq, result->mpq, y->mpq);
                             break;
                         case '-':
-                            mpq_sub(result, result, y);
+                            mpq_sub(result->mpq, result->mpq, y->mpq);
                             break;
                         case '*':
-                            mpq_mul(result, result, y);
+                            mpq_mul(result->mpq, result->mpq, y->mpq);
                             break;
                         case '/':
-                            mpq_div(result, result, y);
+                            mpq_div(result->mpq, result->mpq, y->mpq);
                             break;
                         default:
                             // has to be smth wrong
@@ -264,9 +398,10 @@ int combine_tokens_to_mpq(int start, const GPtrArray *tokens, mpq_t result) {
                     }
                 } else {
                     // it's the first number of the statement, so just add it
-                    mpq_add(result, result, y);
+                    mpq_add(result->mpq, result->mpq, y->mpq);
                 }
-                mpq_canonicalize(result);
+                mpq_canonicalize(result->mpq);
+                free_number(y);
                 break;
             case '+':
             case '-':
@@ -306,10 +441,6 @@ gboolean add_brackets_for_order(GPtrArray *tokens) {
                     t2->owner = 'o';
                     g_ptr_array_insert(tokens, current_idx +1, t2);
 
-                    // debug
-                    char *tokenised_str = tokens_into_one(tokens);
-                    g_print("%s\n", tokenised_str);
-
                     // find spot to put ')'
                     int x = 0;
                     // start at i+1 because I added something above
@@ -327,16 +458,12 @@ gboolean add_brackets_for_order(GPtrArray *tokens) {
                                 t4->value = g_strdup(")");
                                 g_ptr_array_insert(tokens, j + 1, t4);
 
-                                tokenised_str = tokens_into_one(tokens);
-                                g_print("%s\n", tokenised_str);
-
                                 g_array_index(plusminus_indices, int, plusminus_indices->len -1) = 0;
                                 break;
                             }
 
                         }
                     }
-                    g_free(tokenised_str);
                     if (x != 0) return false;
                 }
                 break;
@@ -356,9 +483,7 @@ gboolean add_brackets_for_order(GPtrArray *tokens) {
     return true;
 }
 
-gboolean interpret_input(mpq_t result, GPtrArray *tokens) {
-    mpq_set_str(result, "0", 10);
-
+gboolean interpret_input(Number *result, GPtrArray *tokens) {
     set_types(tokens);
 
     if (!add_brackets_for_order(tokens)) return false;
@@ -399,9 +524,8 @@ gboolean interpret_input(mpq_t result, GPtrArray *tokens) {
         g_print("index of found '(': %d\n", latest_idx);
 
         // temporary mpq_t for combining
-        mpq_t x;
-        mpq_init(x);
-        mpq_set_str(x, "0", 10);
+        Number *x = g_new(Number, 1);
+        number_init(x);
 
         // combine all tokens up to ')' into mpq_t x
         int exit_at = combine_tokens_to_mpq(latest_idx + 1, tokens, x);
@@ -416,14 +540,15 @@ gboolean interpret_input(mpq_t result, GPtrArray *tokens) {
             // build new token to insert
             Token *new_token = g_new(Token, 1);
             new_token->type = 'n';
-            new_token->value = g_strdup(mpq_get_str(nullptr, 10, x));
+            new_token->value = g_strdup(mpq_get_str(nullptr, 10, x->mpq));
             g_ptr_array_insert(tokens, latest_idx, new_token);
         } else {
             // something has to be wrong
+            free_number(x);
             return false;
         }
+        free_number(x);
     }
-    g_print("%s\n", tokens_into_one(tokens));
 
     // all the brackets are gone so now just do the rest
     if (combine_tokens_to_mpq(0, tokens, result) == false) return false;
@@ -478,14 +603,15 @@ G_MODULE_EXPORT void on_calculation_submit(GtkWidget *widget, gpointer data) {
 
     // fill output with text
     // have exact number
-    mpq_t result;
-    mpq_init(result);
+
+    Number *result = g_new(Number, 1);
+    number_init(result);
     gboolean worked =  interpret_input(result, tokens);
 
     if (worked) {
         // now make it String
-        mpq_canonicalize(result);
-        char *str = mpq_get_str(nullptr, 10, result);
+        mpq_canonicalize(result->mpq);
+        char *str = mpq_get_str(nullptr, 10, result->mpq);
 
         // set output
         gtk_label_set_label(GTK_LABEL(output), str);
@@ -511,6 +637,7 @@ G_MODULE_EXPORT void on_calculation_submit(GtkWidget *widget, gpointer data) {
     // g_print("freeing...\n");
     g_ptr_array_free(tokens, TRUE);
     g_free(tokenised_str);
+    free_number(result);
 }
 
 static void on_activate (GtkApplication *app) {
@@ -536,7 +663,7 @@ static void on_activate (GtkApplication *app) {
 int main (int argc, char *argv[]) {
     // regex (for later use)
     regex = g_regex_new(
-    "[0-9]+(?:\\.[0-9]+)?+(?:e+(?:-)?[0-9]+)?"   // numbers (with e)
+    "[0-9]+(?:\\.[0-9]+)?+(?:e+(?:-)?[0-9]+(?:\\.[0-9]+))?"   // numbers (with e)
     "|[A-Za-z]+"             // identifiers (sqrt, sin, ...)
     "|\\*|/|\\+|-"            // operators
     "|\\(|\\)",              // parentheses
