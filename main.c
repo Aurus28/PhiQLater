@@ -707,6 +707,9 @@ G_MODULE_EXPORT void on_calculation_submit(GtkWidget *widget, gpointer data) {
 
 static void on_activate (GtkApplication *app) {
 
+    // locales
+    setlocale(LC_NUMERIC, "C");
+
     // assign things
     GtkBuilder *builder = gtk_builder_new_from_resource("/de/aurus28/PhiQLater/resources/phiqlater.ui");
     GObject *window = gtk_builder_get_object(builder, "main_window");

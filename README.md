@@ -24,6 +24,12 @@ From Physics Calculator
    
     ```flatpak uninstall de.aurus28.PhiQLater```
 
+# Things to later put into settings
+- Precision internally
+- Amount of digits displayed for output
+- locale settings
+
+
 # Future will bring
 - [X] brackets
 - [X] order of operations
@@ -36,7 +42,7 @@ From Physics Calculator
 - [ ] "input panel" for e.g.:
 - [ ] physical konstants
 - [ ] more Operations (power, root, log, differentiate, integrate, etc.)
-- [ ] option to use it on not only my device
+- [X] option to use it on not only my device
 - [ ] settings
 - [ ] ans button
 - [ ] graphs
