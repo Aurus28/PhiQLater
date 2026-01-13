@@ -28,10 +28,10 @@ From Physics Calculator
 - [X] brackets
 - [X] order of operations
 - [ ] enums for all the times u use chars as tags omg I hate myself why did I learn about this so late now I have to do multiple hours of changing this but it's so much better :crying:
-- [ ] irrational numbers
+- [X] irrational numbers
 - [X] enter to submit
 - [X] fix naming schemes
-- [ ] option to round output & space large numbers or output them with e
+- [X] option to round output & space large numbers or output them with e
 - [ ] units
 - [ ] "input panel" for e.g.:
 - [ ] physical konstants

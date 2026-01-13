@@ -4,12 +4,14 @@
 #include "gmodule.h"
 #include <gtk/gtk.h>
 #include <gmp.h>
+#include <locale.h>
 #include <string.h>
 #include <math.h>
 #include <mpfr.h>
 
 // constants (maybe later user editable)
 constexpr int MPQ_PRECISION = 50;
+constexpr int OUTPUT_SIGNIFICANT_DIGITS = 10;
 
 GPtrArray *results_list;
 
@@ -601,30 +603,16 @@ G_MODULE_EXPORT void round_output_button_clicked(GtkWidget *widget, gpointer dat
 
                     mpfr_set_q(temp, n->mpq, MPFR_RNDN);
 
-                    // now set the labels label
-                    mpfr_exp_t exp;
-                    char *str = mpfr_get_str(nullptr, &exp, 10, 10, temp, MPFR_RNDN);
+                    // obtain a string (char array)
+                    char *str;
+                    mpfr_asprintf(&str, "%.*Rg", OUTPUT_SIGNIFICANT_DIGITS - 1, temp); // minus one because the number before the period exists
 
-                    // TODO: gotta account for - if ther is any
-                    exp = exp - strlen(str);
-                    // write exp into exp_str
-                    char exp_str[32];
-                    snprintf(exp_str, sizeof(exp_str), "e%ld", (long)exp);
-
-                    // put it into a string
-                    GString *s = g_string_new("");
-                    g_string_append(s, str);
-                    g_string_append(s, exp_str);
-
-                    char *output_text = g_string_free(s, FALSE);
-
-                    gtk_label_set_label(GTK_LABEL(sibling), output_text);
+                    gtk_label_set_label(GTK_LABEL(sibling), str);
 
                     n->current_output = false;
 
-                    g_free(output_text);
                     mpfr_clear(temp);
-                    free(str);
+                    mpfr_free_str(str);
 
                     return;
                 }
@@ -694,14 +682,22 @@ G_MODULE_EXPORT void on_calculation_submit(GtkWidget *widget, gpointer data) {
     // make output label visible
     gtk_widget_set_visible(output, true);
 
-    // store number in results list
-    g_ptr_array_add(results_list, result);
-    result->output_label = output;
-
     // add new calc line under if it wasn't used before (parent of parent of parent of the button that was clicked is the box where to add a new row)
     if(!used) {
         gtk_box_append(GTK_BOX(gtk_widget_get_parent(gtk_widget_get_parent(parent))), create_row());
+    } else {
+        for (int i = 0; i < results_list->len; i++) {
+            Number *n = g_ptr_array_index(results_list, i);
+            if (n->output_label == output) {
+                // remove result if there already is one
+                g_ptr_array_remove_index(results_list, i);
+                break;
+            }
+        }
     }
+    // store number in results list
+    g_ptr_array_add(results_list, result);
+    result->output_label = output;
 
     // free memory
     // g_print("freeing...\n");
@@ -742,7 +738,6 @@ int main (int argc, char *argv[]) {
     0,
     nullptr
     );
-
 
     // Create a new application
     GtkApplication *app = gtk_application_new ("de.aurus28.PhiQLater", G_APPLICATION_DEFAULT_FLAGS);
