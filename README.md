@@ -17,7 +17,10 @@ From Physics Calculator
 4. start the app
    
     ```flatpak run de.aurus28.PhiQLater```
-5. uninstalling:
+5. updating: in the directory where you cloned this run update.sh:
+
+   ```./update.sh```
+6. uninstalling:
    
     ```flatpak uninstall de.aurus28.PhiQLater```
 
