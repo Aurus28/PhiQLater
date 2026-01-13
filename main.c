@@ -11,6 +11,7 @@
 // constants (maybe later user editable)
 constexpr int MPQ_PRECISION = 50;
 
+GPtrArray *results_list;
 
 GRegex *regex;
 typedef struct Token {
@@ -37,6 +38,8 @@ typedef struct Number {
     mpq_t mpq;
     char *irrational_depiction;
     PreciseType precise_type; // to store whether mpq is as precise as it gets or if other way of depiction are more precise
+    GtkWidget *output_label;
+    gboolean current_output; // true: precise, false: rounded
 } Number;
 
 void number_init(Number *number) {
@@ -44,6 +47,8 @@ void number_init(Number *number) {
     mpq_set_str(number->mpq, "0", 10);
     number->irrational_depiction = strdup("");
     number->precise_type = MPQ;
+    number->output_label = nullptr;
+    number->current_output = true;
 }
 
 gboolean number_set_str(Number *number, const char *input) {
@@ -265,7 +270,6 @@ void mpq_pow(mpq_t result, mpq_t base, const int exp) {
 gboolean mpq_set_str_fractions_and_e(mpq_t result, const char* input) {
     // check for decimal
     const DecimalType decimal = check_decimal(input);
-    g_print("Decimal: %d\n", decimal);
 
     if (decimal == 0) {
         mpq_set_str(result, input, 10);
@@ -571,6 +575,64 @@ GtkWidget *create_row() {
     return row;
 }
 
+G_MODULE_EXPORT void round_output_button_clicked(GtkWidget *widget, gpointer data) {
+    GtkWidget *sibling = gtk_widget_get_prev_sibling(widget);
+
+    for (int i = 0; i < results_list->len; i++) {
+        Number *n = g_ptr_array_index(results_list, i);
+
+        if (n->output_label == sibling) {
+
+            // check how the number is stored
+            if (n->precise_type == MPQ) {
+                // check what is currently displayed
+                if (!n->current_output) {
+                    // set corresponding new output
+                    char *str = mpq_get_str(nullptr, 10, n->mpq);
+                    gtk_label_set_label(GTK_LABEL(sibling), str);
+                    n->current_output = true;
+                    g_free(str);
+                    return;
+                }
+                if (n->current_output) {
+                    // make my number into a mpfr then set that as string
+                    mpfr_t temp;
+                    mpfr_init2(temp, MPQ_PRECISION * 4);
+
+                    mpfr_set_q(temp, n->mpq, MPFR_RNDN);
+
+                    // now set the labels label
+                    mpfr_exp_t exp;
+                    char *str = mpfr_get_str(nullptr, &exp, 10, 10, temp, MPFR_RNDN);
+
+                    // TODO: gotta account for - if ther is any
+                    exp = exp - strlen(str);
+                    // write exp into exp_str
+                    char exp_str[32];
+                    snprintf(exp_str, sizeof(exp_str), "e%ld", (long)exp);
+
+                    // put it into a string
+                    GString *s = g_string_new("");
+                    g_string_append(s, str);
+                    g_string_append(s, exp_str);
+
+                    char *output_text = g_string_free(s, FALSE);
+
+                    gtk_label_set_label(GTK_LABEL(sibling), output_text);
+
+                    n->current_output = false;
+
+                    g_free(output_text);
+                    mpfr_clear(temp);
+                    free(str);
+
+                    return;
+                }
+            }
+        }
+    }
+}
+
 G_MODULE_EXPORT void on_calculation_submit(GtkWidget *widget, gpointer data) {
     //get the entry field
     GtkWidget *entry;
@@ -593,7 +655,8 @@ G_MODULE_EXPORT void on_calculation_submit(GtkWidget *widget, gpointer data) {
 
     //get parent & parent sibling (output) element
     GtkWidget *parent = gtk_widget_get_parent(widget);
-    GtkWidget *output = gtk_widget_get_next_sibling(parent);
+    GtkWidget *parents_sibling = gtk_widget_get_next_sibling(parent);
+    GtkWidget *output = gtk_widget_get_first_child(parents_sibling);
 
     GPtrArray *tokens = tokenize(input);
 
@@ -616,6 +679,9 @@ G_MODULE_EXPORT void on_calculation_submit(GtkWidget *widget, gpointer data) {
         // set output
         gtk_label_set_label(GTK_LABEL(output), str);
 
+        // make rounding button visible
+        gtk_widget_set_visible(gtk_widget_get_next_sibling(output), true);
+
         // freeeee
         free(str);
     } else {
@@ -628,6 +694,10 @@ G_MODULE_EXPORT void on_calculation_submit(GtkWidget *widget, gpointer data) {
     // make output label visible
     gtk_widget_set_visible(output, true);
 
+    // store number in results list
+    g_ptr_array_add(results_list, result);
+    result->output_label = output;
+
     // add new calc line under if it wasn't used before (parent of parent of parent of the button that was clicked is the box where to add a new row)
     if(!used) {
         gtk_box_append(GTK_BOX(gtk_widget_get_parent(gtk_widget_get_parent(parent))), create_row());
@@ -637,7 +707,6 @@ G_MODULE_EXPORT void on_calculation_submit(GtkWidget *widget, gpointer data) {
     // g_print("freeing...\n");
     g_ptr_array_free(tokens, TRUE);
     g_free(tokenised_str);
-    free_number(result);
 }
 
 static void on_activate (GtkApplication *app) {
@@ -658,12 +727,14 @@ static void on_activate (GtkApplication *app) {
     gtk_window_present(GTK_WINDOW(window));
 
     g_object_unref(builder);
+
+    results_list = g_ptr_array_new_with_free_func((GDestroyNotify)free_number);
 }
 
 int main (int argc, char *argv[]) {
     // regex (for later use)
     regex = g_regex_new(
-    "[0-9]+(?:\\.[0-9]+)+(?:e+(?:-)?[0-9]+(?:\\.[0-9]+)?)?"   // numbers (with e)
+    "[0-9]+(?:\\.[0-9]+)?+(?:e+(?:-)?[0-9]+(?:\\.[0-9]+)?)?"   // numbers (with e)
     "|[A-Za-z]+"             // identifiers (sqrt, sin, ...)
     "|\\*|/|\\+|-"            // operators
     "|\\(|\\)",              // parentheses

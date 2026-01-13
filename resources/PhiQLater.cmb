@@ -2,6 +2,6 @@
 <!DOCTYPE cambalache-project SYSTEM "cambalache-project.dtd">
 <!-- Created with Cambalache 0.96.3 -->
 <cambalache-project version="0.96.0" target_tk="gtk-4.0">
-  <ui filename="phiqlater.ui" sha256="1a3f48e1efc08ae7c8a6723bcca7c2a23707a77850df682583a6fbfa1d41c2d8"/>
-  <ui filename="calc_row.ui" sha256="ecd7548af06812332de7b1cf96f15976f62ab9cb064a2242625f7019b2cde1c4"/>
+  <ui filename="phiqlater.ui" sha256="7765b7c46d78092fdb0cb8fd2400fe543aa94ec87ad31b7e05a4ae201ce3f101"/>
+  <ui filename="calc_row.ui" sha256="9ea80daceec068cba75c2e539a2d60cda01a5bb192841414f3f1dd87b297da95"/>
 </cambalache-project>

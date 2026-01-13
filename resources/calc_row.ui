@@ -26,10 +26,22 @@
       </object>
     </child>
     <child>
-      <object class="GtkLabel">
-        <property name="hexpand">True</property>
-        <property name="visible">False</property>
-        <property name="xalign">0.0</property>
+      <object class="GtkBox">
+        <property name="margin-bottom">5</property>
+        <child>
+          <object class="GtkLabel">
+            <property name="hexpand">True</property>
+            <property name="visible">False</property>
+            <property name="xalign">0.0</property>
+          </object>
+        </child>
+        <child>
+          <object class="GtkButton">
+            <property name="icon-name">edit-undo</property>
+            <property name="visible">False</property>
+            <signal name="clicked" handler="round_output_button_clicked"/>
+          </object>
+        </child>
       </object>
     </child>
   </object>
