@@ -663,7 +663,7 @@ static void on_activate (GtkApplication *app) {
 int main (int argc, char *argv[]) {
     // regex (for later use)
     regex = g_regex_new(
-    "[0-9]+(?:\\.[0-9]+)?+(?:e+(?:-)?[0-9]+(?:\\.[0-9]+))?"   // numbers (with e)
+    "[0-9]+(?:\\.[0-9]+)+(?:e+(?:-)?[0-9]+(?:\\.[0-9]+)?)?"   // numbers (with e)
     "|[A-Za-z]+"             // identifiers (sqrt, sin, ...)
     "|\\*|/|\\+|-"            // operators
     "|\\(|\\)",              // parentheses
