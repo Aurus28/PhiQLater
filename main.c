@@ -14,10 +14,30 @@ constexpr int MPQ_PRECISION = 50;
 constexpr int OUTPUT_SIGNIFICANT_DIGITS = 10;
 
 GPtrArray *results_list;
+GHashTable *units;
 
 GRegex *regex;
+
+typedef struct Unit {
+    char *text;
+    int dims[7];
+    mpq_t factor;
+} Unit;
+
+typedef enum TokenType {
+    NUMBER,
+    UNDEFINED,
+    PLUS,
+    MINUS,
+    TIMES,
+    DIVIDE,
+    OPEN_BRACKET,
+    CLOSE_BRACKET,
+    UNIT
+} TokenType;
+
 typedef struct Token {
-    char type; // n: number | u: undefined | +-*/(): that sign | to be continued TODO: change to enum
+    char type; // n: number | u: undefined | +-*/(): that sign | U: Unit | to be continued TODO: change to enum
     char *value;
     char owner; // u: user (by entering his input) | o: order of operations
 } Token;
@@ -42,7 +62,20 @@ typedef struct Number {
     PreciseType precise_type; // to store whether mpq is as precise as it gets or if other way of depiction are more precise
     GtkWidget *output_label;
     gboolean current_output; // true: precise, false: rounded
+    Unit *unit;
 } Number;
+
+void unit_init(Unit *unit) {
+    mpq_init(unit->factor);
+    unit->text = strdup("undefined");
+    unit->dims[0] = 0;
+    unit->dims[1] = 0;
+    unit->dims[2] = 0;
+    unit->dims[3] = 0;
+    unit->dims[4] = 0;
+    unit->dims[5] = 0;
+    unit->dims[6] = 0;
+}
 
 void number_init(Number *number) {
     mpq_init(number->mpq);
@@ -51,6 +84,7 @@ void number_init(Number *number) {
     number->precise_type = MPQ;
     number->output_label = nullptr;
     number->current_output = true;
+    unit_init(number->unit);
 }
 
 gboolean number_set_str(Number *number, const char *input) {
@@ -59,16 +93,27 @@ gboolean number_set_str(Number *number, const char *input) {
     return true;
 }
 
+void free_unit(Unit *u) {
+    if (!u) return;
+
+    mpq_clear(u->factor);
+    g_free(u->text);
+}
 
 void free_token(Token *t) {
+    if (!t) return;
+
     g_free(t->value);
     g_free(t);
 }
 
 void free_number(Number *n) {
+    if (!n) return;
+
     g_free(n->irrational_depiction);
     mpq_clear(n->mpq);
     g_free(n);
+    free_unit(n->unit);
 }
 
 GPtrArray *tokenize(const char *input) {
@@ -131,6 +176,14 @@ void set_types(const GPtrArray *tokens) {
             case '(':
             case ')':
                 t->type = t->value[0];
+                break;
+            case 'U':
+                // i are good programmer, source: trust me bro
+                if (t->value[1] == 'n' && t->value[2] == 'i' && t->value[3] == 't' && t->value[4] == '(' && t->value[strlen(t->value) - 1] == ')') { // potentially remove the "-1"
+                    t->type = 'U'; // UUUUUnit
+                } else {
+                    t->type = 'u'; // uuuuundefined
+                }
                 break;
             default:
                 t->type = 'u';
@@ -489,8 +542,45 @@ gboolean add_brackets_for_order(GPtrArray *tokens) {
     return true;
 }
 
+gboolean handle_units(GPtrArray *tokens, Number *result) {
+    for (int i = 0; i < tokens->len; i++) {
+        Token *t = g_ptr_array_index(tokens, i);
+        if (t->type == 'U') {
+            // get pointer to '('
+            char *start = strchr(t->value, '(');
+            if (start == NULL) {
+                return false;
+            }
+            GString *builder = g_string_new("");
+            // add all signs between the brackets to builder
+            for (int j = 1; true; j++) {
+                if (start[j] == ')') {
+                    return false;
+                }
+                g_string_append(builder, &start[j]);
+            }
+            char *unit_str = g_string_free(builder, FALSE);
+            // TODO:
+            /*
+             * 1. check for * and / in the unit string to identify things like m/s
+             * 2. (probably mix with 1.) recursively look at smaller parts of the unit string and try to match them with units from the global hash table
+             * 3. check for a potential / before the unit (prev token)
+             * 4. in step 3 remember that .../(...*Unit(...) may exist
+             * 5. after that figure out vector multiplication (rip)
+             * 6. remember the call for handle_units is commented out
+             */
+
+            g_free(unit_str);
+        }
+    }
+
+    return true;
+}
+
 gboolean interpret_input(Number *result, GPtrArray *tokens) {
     set_types(tokens);
+
+    //if (!handle_units(tokens, result)) return false;
 
     if (!add_brackets_for_order(tokens)) return false;
 
@@ -705,6 +795,29 @@ G_MODULE_EXPORT void on_calculation_submit(GtkWidget *widget, gpointer data) {
     g_free(tokenised_str);
 }
 
+void load_units() {
+    units = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, (GDestroyNotify) free_unit);
+
+    // [t (time in s), l (length in m), m (mass in kg), I (electric current in A), T (temperature in K), N (amount of substance in mol), J (luminous intensity in cd)]
+
+    // add new unit to table
+    Unit *s = g_new(Unit, 1);
+    unit_init(s);
+    s->dims[0] = 1;
+    mpq_set_ui(s->factor, 1, 1);
+    s->text = strdup("s");
+
+    g_hash_table_insert(units, strdup("s"), s);
+
+    Unit *A = g_new(Unit, 1);
+    unit_init(A);
+    A->dims[3] = 1;
+    mpq_set_ui(A->factor, 1, 1);
+    A->text = strdup("A");
+
+    g_hash_table_insert(units, strdup("A"), A);
+}
+
 static void on_activate (GtkApplication *app) {
 
     // locales
@@ -728,13 +841,15 @@ static void on_activate (GtkApplication *app) {
     g_object_unref(builder);
 
     results_list = g_ptr_array_new_with_free_func((GDestroyNotify)free_number);
+
+    load_units();
 }
 
 int main (int argc, char *argv[]) {
     // regex (for later use)
     regex = g_regex_new(
     "[0-9]+(?:\\.[0-9]+)?+(?:e+(?:-)?[0-9]+(?:\\.[0-9]+)?)?"   // numbers (with e)
-    "|[A-Za-z]+"             // identifiers (sqrt, sin, ...)
+    "|Unit\\(.+\\)"             // identifiers (sqrt, sin, ...)
     "|\\*|/|\\+|-"            // operators
     "|\\(|\\)",              // parentheses
     G_REGEX_OPTIMIZE,
